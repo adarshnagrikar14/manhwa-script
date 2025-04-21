@@ -7,8 +7,9 @@ export TRAIN_DATA="$KAGGLE_PREFIX/data/train/train.jsonl"
 export OUTPUT_DIR="$KAGGLE_PREFIX/models/style_model"
 export CONFIG="$KAGGLE_PREFIX/default_config.yaml"
 export LOG_PATH="$KAGGLE_PREFIX/models/logs"
+export TRAIN_PATH="$KAGGLE_PREFIX/train.py"
 
-CUDA_VISIBLE_DEVICES=0,1 accelerate launch --config_file $CONFIG train.py \
+CUDA_VISIBLE_DEVICES=0,1 accelerate launch --config_file $CONFIG $TRAIN_PATH \
     --pretrained_model_name_or_path $MODEL_DIR \
     --cond_size=512 \
     --noise_size=1024 \
