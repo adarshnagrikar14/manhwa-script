@@ -503,26 +503,29 @@ class FluxTransformer2DModel(
             if torch.is_grad_enabled() and self.gradient_checkpointing:
 
                 def create_custom_forward(module, return_dict=None):
-                    def custom_forward(*inputs):
+                    def custom_forward(*inputs, **kwargs):
                         if return_dict is not None:
-                            return module(*inputs, return_dict=return_dict)
+                            return module(*inputs, return_dict=return_dict, **kwargs)
                         else:
-                            return module(*inputs)
+                            return module(*inputs, **kwargs)
 
                     return custom_forward
 
                 ckpt_kwargs: Dict[str, Any] = {
                     "use_reentrant": False} if is_torch_version(">=", "1.11.0") else {}
-                encoder_hidden_states, hidden_states = torch.utils.checkpoint.checkpoint(
+                encoder_hidden_states, hidden_states, cond_hidden_states_out = torch.utils.checkpoint.checkpoint(
                     create_custom_forward(block),
                     hidden_states,
                     encoder_hidden_states,
                     temb,
+                    cond_temb if use_condition else None,
                     image_rotary_emb,
-                    cond_temb=cond_temb if use_condition else None,
-                    cond_hidden_states=cond_hidden_states if use_condition else None,
+                    cond_hidden_states if use_condition else None,
+                    joint_attention_kwargs,
                     **ckpt_kwargs,
                 )
+                if use_condition:
+                    cond_hidden_states = cond_hidden_states_out
 
             else:
                 encoder_hidden_states, hidden_states, cond_hidden_states = block(
@@ -558,25 +561,28 @@ class FluxTransformer2DModel(
             if torch.is_grad_enabled() and self.gradient_checkpointing:
 
                 def create_custom_forward(module, return_dict=None):
-                    def custom_forward(*inputs):
+                    def custom_forward(*inputs, **kwargs):
                         if return_dict is not None:
-                            return module(*inputs, return_dict=return_dict)
+                            return module(*inputs, return_dict=return_dict, **kwargs)
                         else:
-                            return module(*inputs)
+                            return module(*inputs, **kwargs)
 
                     return custom_forward
 
                 ckpt_kwargs: Dict[str, Any] = {
                     "use_reentrant": False} if is_torch_version(">=", "1.11.0") else {}
-                hidden_states, cond_hidden_states = torch.utils.checkpoint.checkpoint(
+                hidden_states, cond_hidden_states_out = torch.utils.checkpoint.checkpoint(
                     create_custom_forward(block),
                     hidden_states,
+                    cond_hidden_states if use_condition else None,
                     temb,
+                    cond_temb if use_condition else None,
                     image_rotary_emb,
-                    cond_temb=cond_temb if use_condition else None,
-                    cond_hidden_states=cond_hidden_states if use_condition else None,
+                    joint_attention_kwargs,
                     **ckpt_kwargs,
                 )
+                if use_condition:
+                    cond_hidden_states = cond_hidden_states_out
 
             else:
                 hidden_states, cond_hidden_states = block(
