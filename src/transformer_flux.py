@@ -513,19 +513,21 @@ class FluxTransformer2DModel(
 
                 ckpt_kwargs: Dict[str, Any] = {
                     "use_reentrant": False} if is_torch_version(">=", "1.11.0") else {}
-                encoder_hidden_states, hidden_states, cond_hidden_states_out = torch.utils.checkpoint.checkpoint(
+                outputs = torch.utils.checkpoint.checkpoint(
                     create_custom_forward(block),
                     hidden_states,
+                    cond_hidden_states if use_condition else None,
                     encoder_hidden_states,
                     temb,
                     cond_temb if use_condition else None,
                     image_rotary_emb,
-                    cond_hidden_states if use_condition else None,
                     joint_attention_kwargs,
                     **ckpt_kwargs,
                 )
+                encoder_hidden_states = outputs[0]
+                hidden_states = outputs[1]
                 if use_condition:
-                    cond_hidden_states = cond_hidden_states_out
+                    cond_hidden_states = outputs[2]
 
             else:
                 encoder_hidden_states, hidden_states, cond_hidden_states = block(
@@ -571,7 +573,7 @@ class FluxTransformer2DModel(
 
                 ckpt_kwargs: Dict[str, Any] = {
                     "use_reentrant": False} if is_torch_version(">=", "1.11.0") else {}
-                hidden_states, cond_hidden_states_out = torch.utils.checkpoint.checkpoint(
+                outputs = torch.utils.checkpoint.checkpoint(
                     create_custom_forward(block),
                     hidden_states,
                     cond_hidden_states if use_condition else None,
@@ -581,8 +583,9 @@ class FluxTransformer2DModel(
                     joint_attention_kwargs,
                     **ckpt_kwargs,
                 )
+                hidden_states = outputs[0]
                 if use_condition:
-                    cond_hidden_states = cond_hidden_states_out
+                    cond_hidden_states = outputs[1]
 
             else:
                 hidden_states, cond_hidden_states = block(
