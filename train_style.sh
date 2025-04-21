@@ -1,6 +1,6 @@
-huggingface-cli login --token $HF_TOKEN
+huggingface-cli login --token "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"
 
-export KAGGLE_PREFIX="/kaggle/working"
+export KAGGLE_PREFIX="/kaggle/working/manhwa-script"
 
 export MODEL_DIR="black-forest-labs/FLUX.1-dev"
 export TRAIN_DATA="$KAGGLE_PREFIX/data/train/train.jsonl"
