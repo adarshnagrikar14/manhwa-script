@@ -35,7 +35,6 @@ from diffusers.training_utils import (
 from diffusers.utils.torch_utils import is_compiled_module
 from diffusers.utils import (
     check_min_version,
-    is_wandb_available
 )
 
 from src.prompt_helper import *
@@ -44,12 +43,6 @@ from src.pipeline import FluxPipeline, resize_position_encoding, prepare_latent_
 from src.layers import MultiDoubleStreamBlockLoraProcessor, MultiSingleStreamBlockLoraProcessor
 from src.transformer_flux import FluxTransformer2DModel
 from src.jsonl_datasets import make_train_dataset, collate_fn
-
-if is_wandb_available():
-    import wandb
-
-# Will error if the minimal version of diffusers is not installed. Remove at your own risks.
-check_min_version("0.31.0.dev0")
 
 logger = get_logger(__name__)
 
@@ -85,14 +78,6 @@ def log_validation(
             np_images = np.stack([np.asarray(img) for img in images])
             tracker.writer.add_images(
                 phase_name, np_images, step, dataformats="NHWC")
-        if tracker.name == "wandb":
-            tracker.log(
-                {
-                    phase_name: [
-                        wandb.Image(image, caption=f"{i}: {args.validation_prompt}") for i, image in enumerate(images)
-                    ]
-                }
-            )
 
     del pipeline
     if torch.cuda.is_available():
@@ -455,10 +440,10 @@ def parse_args(input_args=None):
     parser.add_argument(
         "--report_to",
         type=str,
-        default="wandb",
+        default="tensorboard",
         help=(
             'The integration to report the results and logs to. Supported platforms are `"tensorboard"`'
-            ' (default), `"wandb"` and `"comet_ml"`. Use `"all"` to report to all integrations.'
+            ' (default), and `"comet_ml"`. Use `"all"` to report to all integrations.'
         ),
     )
     parser.add_argument(
@@ -520,11 +505,6 @@ def main(args):
     # Disable AMP for MPS.
     if torch.backends.mps.is_available():
         accelerator.native_amp = False
-
-    if args.report_to == "wandb":
-        if not is_wandb_available():
-            raise ImportError(
-                "Make sure to install wandb if you want to use it for logging during training.")
 
     # Make one log on every process with the configuration for debugging.
     logging.basicConfig(

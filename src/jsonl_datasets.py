@@ -6,12 +6,16 @@ import torch
 
 Image.MAX_IMAGE_PIXELS = None
 
+
 def multiple_16(num: float):
     return int(round(num / 16) * 16)
 
+
 def get_random_resolution(min_size=512, max_size=1280, multiple=16):
-    resolution = random.randint(min_size // multiple, max_size // multiple) * multiple
+    resolution = random.randint(
+        min_size // multiple, max_size // multiple) * multiple
     return resolution
+
 
 def load_image_safely(image_path, size):
     try:
@@ -22,24 +26,26 @@ def load_image_safely(image_path, size):
         with open("failed_images.txt", "a") as f:
             f.write(f"{image_path}\n")
         return Image.new("RGB", (size, size), (255, 255, 255))
-    
+
+
 def make_train_dataset(args, tokenizer, accelerator=None):
     if args.train_data_dir is not None:
         print("load_data")
         dataset = load_dataset('json', data_files=args.train_data_dir)
 
     column_names = dataset["train"].column_names
-    
+
     # 6. Get the column names for input/target.
     caption_column = args.caption_column
     target_column = args.target_column
     if args.subject_column is not None:
         subject_columns = args.subject_column.split(",")
     if args.spatial_column is not None:
-        spatial_columns= args.spatial_column.split(",")
-    
+        spatial_columns = args.spatial_column.split(",")
+
     size = args.cond_size
-    noise_size = get_random_resolution(max_size=args.noise_size) # maybe 768 or higher
+    noise_size = get_random_resolution(
+        max_size=args.noise_size)  # maybe 768 or higher
     subject_cond_train_transforms = transforms.Compose(
         [
             transforms.Lambda(lambda img: img.resize((
@@ -53,9 +59,9 @@ def make_train_dataset(args, tokenizer, accelerator=None):
                     int((size - img.size[0]) / 2),
                     int((size - img.size[1]) / 2),
                     int((size - img.size[0]) / 2),
-                    int((size - img.size[1]) / 2) 
+                    int((size - img.size[1]) / 2)
                 ),
-                fill=0 
+                fill=0
             )(img)),
             transforms.ToTensor(),
             transforms.Normalize([0.5], [0.5]),
@@ -63,7 +69,8 @@ def make_train_dataset(args, tokenizer, accelerator=None):
     )
     cond_train_transforms = transforms.Compose(
         [
-            transforms.Resize((size, size), interpolation=transforms.InterpolationMode.BILINEAR),
+            transforms.Resize(
+                (size, size), interpolation=transforms.InterpolationMode.BILINEAR),
             transforms.CenterCrop((size, size)),
             transforms.ToTensor(),
             transforms.Normalize([0.5], [0.5]),
@@ -83,17 +90,18 @@ def make_train_dataset(args, tokenizer, accelerator=None):
         )
         transformed_image = train_transforms_(image)
         return transformed_image
-    
+
     def load_and_transform_cond_images(images):
         transformed_images = [cond_train_transforms(image) for image in images]
         concatenated_image = torch.cat(transformed_images, dim=1)
         return concatenated_image
-    
+
     def load_and_transform_subject_images(images):
-        transformed_images = [subject_cond_train_transforms(image) for image in images]
+        transformed_images = [
+            subject_cond_train_transforms(image) for image in images]
         concatenated_image = torch.cat(transformed_images, dim=1)
         return concatenated_image
-    
+
     tokenizer_clip = tokenizer[0]
     tokenizer_t5 = tokenizer[1]
 
@@ -141,14 +149,21 @@ def make_train_dataset(args, tokenizer, accelerator=None):
     def preprocess_train(examples):
         _examples = {}
         if args.subject_column is not None:
-            subject_images = [[load_image_safely(examples[column][i], args.cond_size) for column in subject_columns] for i in range(len(examples[target_column]))]
-            _examples["subject_pixel_values"] = [load_and_transform_subject_images(subject) for subject in subject_images]
+            subject_images = [[load_image_safely(examples[column][i], args.cond_size)
+                               for column in subject_columns] for i in range(len(examples[target_column]))]
+            _examples["subject_pixel_values"] = [
+                load_and_transform_subject_images(subject) for subject in subject_images]
         if args.spatial_column is not None:
-            spatial_images = [[load_image_safely(examples[column][i], args.cond_size) for column in spatial_columns] for i in range(len(examples[target_column]))]
-            _examples["cond_pixel_values"] = [load_and_transform_cond_images(spatial) for spatial in spatial_images]
-        target_images = [load_image_safely(image_path, args.cond_size) for image_path in examples[target_column]]
-        _examples["pixel_values"] = [train_transforms(image, noise_size) for image in target_images]
-        _examples["token_ids_clip"], _examples["token_ids_t5"] = tokenize_prompt_clip_t5(examples)
+            spatial_images = [[load_image_safely(examples[column][i], args.cond_size)
+                               for column in spatial_columns] for i in range(len(examples[target_column]))]
+            _examples["cond_pixel_values"] = [
+                load_and_transform_cond_images(spatial) for spatial in spatial_images]
+        target_images = [load_image_safely(
+            image_path, args.cond_size) for image_path in examples[target_column]]
+        _examples["pixel_values"] = [train_transforms(
+            image, noise_size) for image in target_images]
+        _examples["token_ids_clip"], _examples["token_ids_t5"] = tokenize_prompt_clip_t5(
+            examples)
         return _examples
 
     if accelerator is not None:
@@ -162,20 +177,28 @@ def make_train_dataset(args, tokenizer, accelerator=None):
 
 def collate_fn(examples):
     if examples[0].get("cond_pixel_values") is not None:
-        cond_pixel_values = torch.stack([example["cond_pixel_values"] for example in examples])
-        cond_pixel_values = cond_pixel_values.to(memory_format=torch.contiguous_format).float()
+        cond_pixel_values = torch.stack(
+            [example["cond_pixel_values"] for example in examples])
+        cond_pixel_values = cond_pixel_values.to(
+            memory_format=torch.contiguous_format).float()
     else:
         cond_pixel_values = None
-    if examples[0].get("subject_pixel_values") is not None: 
-        subject_pixel_values = torch.stack([example["subject_pixel_values"] for example in examples])
-        subject_pixel_values = subject_pixel_values.to(memory_format=torch.contiguous_format).float()
+    if examples[0].get("subject_pixel_values") is not None:
+        subject_pixel_values = torch.stack(
+            [example["subject_pixel_values"] for example in examples])
+        subject_pixel_values = subject_pixel_values.to(
+            memory_format=torch.contiguous_format).float()
     else:
         subject_pixel_values = None
 
-    target_pixel_values = torch.stack([example["pixel_values"] for example in examples])
-    target_pixel_values = target_pixel_values.to(memory_format=torch.contiguous_format).float()
-    token_ids_clip = torch.stack([torch.tensor(example["token_ids_clip"]) for example in examples])
-    token_ids_t5 = torch.stack([torch.tensor(example["token_ids_t5"]) for example in examples])
+    target_pixel_values = torch.stack(
+        [example["pixel_values"] for example in examples])
+    target_pixel_values = target_pixel_values.to(
+        memory_format=torch.contiguous_format).float()
+    token_ids_clip = torch.stack(
+        [torch.tensor(example["token_ids_clip"]) for example in examples])
+    token_ids_t5 = torch.stack(
+        [torch.tensor(example["token_ids_t5"]) for example in examples])
 
     return {
         "cond_pixel_values": cond_pixel_values,

@@ -78,7 +78,8 @@ def _encode_prompt_with_t5(
         text_input_ids = text_inputs.input_ids
     else:
         if text_input_ids is None:
-            raise ValueError("text_input_ids must be provided when the tokenizer is not specified")
+            raise ValueError(
+                "text_input_ids must be provided when the tokenizer is not specified")
 
     prompt_embeds = text_encoder(text_input_ids.to(device))[0]
 
@@ -89,7 +90,8 @@ def _encode_prompt_with_t5(
 
     # duplicate text embeddings and attention mask for each generation per prompt, using mps friendly method
     prompt_embeds = prompt_embeds.repeat(1, num_images_per_prompt, 1)
-    prompt_embeds = prompt_embeds.view(batch_size * num_images_per_prompt, seq_len, -1)
+    prompt_embeds = prompt_embeds.view(
+        batch_size * num_images_per_prompt, seq_len, -1)
 
     return prompt_embeds
 
@@ -119,9 +121,11 @@ def _encode_prompt_with_clip(
         text_input_ids = text_inputs.input_ids
     else:
         if text_input_ids is None:
-            raise ValueError("text_input_ids must be provided when the tokenizer is not specified")
+            raise ValueError(
+                "text_input_ids must be provided when the tokenizer is not specified")
 
-    prompt_embeds = text_encoder(text_input_ids.to(device), output_hidden_states=False)
+    prompt_embeds = text_encoder(text_input_ids.to(
+        device), output_hidden_states=False)
 
     # Use pooled output of CLIPTextModel
     prompt_embeds = prompt_embeds.pooler_output
@@ -165,7 +169,8 @@ def encode_prompt(
         text_input_ids=text_input_ids_list[1] if text_input_ids_list else None,
     )
 
-    text_ids = torch.zeros(prompt_embeds.shape[1], 3).to(device=device, dtype=dtype)
+    text_ids = torch.zeros(prompt_embeds.shape[1], 3).to(
+        device=device, dtype=dtype)
 
     return prompt_embeds, pooled_prompt_embeds, text_ids
 
@@ -182,14 +187,18 @@ def encode_token_ids(text_encoders, tokens, accelerator, num_images_per_prompt=1
         device = accelerator.device
 
     # clip
-    prompt_embeds = text_encoder_clip(tokens_clip.to(device), output_hidden_states=False)
+    prompt_embeds = text_encoder_clip(
+        tokens_clip.to(device), output_hidden_states=False)
     # Use pooled output of CLIPTextModel
     prompt_embeds = prompt_embeds.pooler_output
-    prompt_embeds = prompt_embeds.to(dtype=text_encoder_clip.dtype, device=accelerator.device)
+    prompt_embeds = prompt_embeds.to(
+        dtype=text_encoder_clip.dtype, device=accelerator.device)
     # duplicate text embeddings for each generation per prompt, using mps friendly method
     prompt_embeds = prompt_embeds.repeat(1, num_images_per_prompt, 1)
-    pooled_prompt_embeds = prompt_embeds.view(batch_size * num_images_per_prompt, -1)
-    pooled_prompt_embeds = pooled_prompt_embeds.to(dtype=text_encoder_clip.dtype, device=accelerator.device)
+    pooled_prompt_embeds = prompt_embeds.view(
+        batch_size * num_images_per_prompt, -1)
+    pooled_prompt_embeds = pooled_prompt_embeds.to(
+        dtype=text_encoder_clip.dtype, device=accelerator.device)
 
     # t5
     prompt_embeds = text_encoder_t5(tokens_t5.to(device))[0]
@@ -198,8 +207,10 @@ def encode_token_ids(text_encoders, tokens, accelerator, num_images_per_prompt=1
     _, seq_len, _ = prompt_embeds.shape
     # duplicate text embeddings and attention mask for each generation per prompt, using mps friendly method
     prompt_embeds = prompt_embeds.repeat(1, num_images_per_prompt, 1)
-    prompt_embeds = prompt_embeds.view(batch_size * num_images_per_prompt, seq_len, -1)
+    prompt_embeds = prompt_embeds.view(
+        batch_size * num_images_per_prompt, seq_len, -1)
 
-    text_ids = torch.zeros(prompt_embeds.shape[1], 3).to(device=accelerator.device, dtype=dtype)
+    text_ids = torch.zeros(prompt_embeds.shape[1], 3).to(
+        device=accelerator.device, dtype=dtype)
 
     return prompt_embeds, pooled_prompt_embeds, text_ids
