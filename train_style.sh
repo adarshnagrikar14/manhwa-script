@@ -6,6 +6,7 @@ export MODEL_DIR="black-forest-labs/FLUX.1-dev"
 export TRAIN_DATA="$KAGGLE_PREFIX/data/train/train.jsonl"
 export OUTPUT_DIR="$KAGGLE_PREFIX/models/style_model"
 export CONFIG="$KAGGLE_PREFIX/default_config.yaml"
+export LOG_PATH="$KAGGLE_PREFIX/models/logs"
 
 CUDA_VISIBLE_DEVICES=0,1 accelerate launch --config_file $CONFIG train.py \
     --pretrained_model_name_or_path $MODEL_DIR \
