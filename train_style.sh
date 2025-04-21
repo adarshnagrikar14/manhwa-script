@@ -1,5 +1,3 @@
-huggingface-cli login --token "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"
-
 export KAGGLE_PREFIX="/kaggle/working/manhwa-script"
 
 export MODEL_DIR="black-forest-labs/FLUX.1-dev"
