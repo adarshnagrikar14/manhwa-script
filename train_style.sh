@@ -8,7 +8,7 @@ export TRAIN_DATA="$KAGGLE_PREFIX/data/train/train.jsonl"
 
 accelerate launch --config_file $CONFIG train.py \
     --pretrained_model_name_or_path $MODEL_DIR \
-    --cond_size=256 \
+    --cond_size=512 \
     --noise_size=1024 \
     --subject_column="None" \
     --spatial_column="source" \
