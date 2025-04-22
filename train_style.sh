@@ -9,23 +9,23 @@ export TRAIN_DATA="$KAGGLE_PREFIX/data/train/train.jsonl"
 accelerate launch --config_file $CONFIG train.py \
     --pretrained_model_name_or_path $MODEL_DIR \
     --cond_size=256 \
-    --noise_size=512 \
+    --noise_size=1024 \
     --subject_column="None" \
     --spatial_column="source" \
     --target_column="target" \
     --caption_column="caption" \
-    --ranks 64 \
-    --network_alphas 64 \
+    --ranks 128 \
+    --network_alphas 128 \
     --output_dir=$OUTPUT_DIR \
     --logging_dir=$LOG_PATH \
-    --mixed_precision="fp16" \
+    --mixed_precision="bf16" \
     --train_data_dir=$TRAIN_DATA \
     --learning_rate=1e-4 \
     --train_batch_size=1 \
-    --validation_prompt "K-pop manhwa style" \
-    --num_train_epochs=50 \
-    --validation_steps=100 \
-    --checkpointing_steps=100 \
+    --validation_prompt "K-pop manhwa style, pop art style" \
+    --num_train_epochs=1000 \
+    --validation_steps=20 \
+    --checkpointing_steps=20 \
     --spatial_test_images "$KAGGLE_PREFIX/data/test/test_one.jpeg" \
     --subject_test_images None \
     --test_h 512 \
