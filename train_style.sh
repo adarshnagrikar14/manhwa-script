@@ -23,7 +23,7 @@ accelerate launch --config_file $CONFIG train.py \
     --learning_rate=1e-4 \
     --train_batch_size=1 \
     --validation_prompt "K-pop manhwa style, pop art style" \
-    --num_train_epochs=1000 \
+    --num_train_epochs=60 \
     --validation_steps=20 \
     --checkpointing_steps=20 \
     --spatial_test_images "$KAGGLE_PREFIX/data/test/test_one.jpeg" \
