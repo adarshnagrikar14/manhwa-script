@@ -6,7 +6,7 @@ export CONFIG="$KAGGLE_PREFIX/default_config.yaml"
 export OUTPUT_DIR="$KAGGLE_PREFIX/models/style_model"
 export TRAIN_DATA="$KAGGLE_PREFIX/data/train/train.jsonl"
 
-accelerate launch --config_file $CONFIG train.py \
+CUDA_VISIBLE_DEVICES=0,1,2,3 accelerate launch --config_file $CONFIG train.py \
     --pretrained_model_name_or_path $MODEL_DIR \
     --cond_size=512 \
     --noise_size=1024 \
@@ -22,15 +22,12 @@ accelerate launch --config_file $CONFIG train.py \
     --train_data_dir=$TRAIN_DATA \
     --learning_rate=1e-4 \
     --train_batch_size=1 \
-    --validation_prompt "K-pop manhwa style, pop art style" \
-    --num_train_epochs=50 \
-    --validation_steps=20 \
-    --checkpointing_steps=20 \
-    --spatial_test_images "$KAGGLE_PREFIX/data/test/test_one.jpeg" \
+    --validation_prompt "K-pop manhwa style digital illustration of this image" \
+    --num_train_epochs=1000 \
+    --validation_steps=200 \
+    --checkpointing_steps=200 \
+    --spatial_test_images "$KAGGLE_PREFIX/data/test/test_one.png" \
     --subject_test_images None \
     --test_h 512 \
     --test_w 512 \
-    --num_validation_images=1 \
-    --gradient_checkpointing \
-    --cache_latents \
-    --dataloader_num_workers=2
+    --num_validation_images=1
